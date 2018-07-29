@@ -1,0 +1,73 @@
+{
+    // Verwendet IntelliSense zum Ermitteln möglicher Attribute.
+    // Zeigen Sie auf vorhandene Attribute, um die zugehörigen Beschreibungen anzuzeigen.
+    // Weitere Informationen finden Sie unter https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        { 
+            "name": "Debug STM32F103C8T6",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceRoot}/build/main.elf",
+            "cwd": ".",
+            "MIMode": "gdb",
+            "miDebuggerServerAddress": "localhost:3333",
+            "preLaunchTask": "make",
+            "miDebuggerPath": "/usr/bin/arm-none-eabi-gdb",
+            "internalConsoleOptions": "openOnSessionStart",
+            "environment": [],
+            "setupCommands": [
+                {
+                    "description": "Load ELF file into GDB",
+                    "text": "file ${workspaceRoot}/build/main.elf",
+                    "ignoreFailures": false
+                },
+                {
+                    "description": "Connect to remote",
+                    "text": "target remote :3333",
+                    "ignoreFailures": false
+                },
+                {
+                    "description": "Reset and Halt",
+                    "text": "monitor reset halt",
+                    "ignoreFailures": false
+                },
+                {
+                    "description": "Flash",
+                    "text": "monitor flash write_image erase ${workspaceRoot}/build/main.bin 0x8000000",
+                    "ignoreFailures": false
+                },
+                {
+                    "description": "Reset and Halt",
+                    "text": "monitor reset halt",
+                    "ignoreFailures": false
+                },
+                {
+                    "description": "Enable semihosting",
+                    "text": "monitor arm semihosting enable",
+                    "ignoreFailures": false
+                }
+            ],
+            "serverStarted": "watchpoints",
+            "debugServerPath": "/usr/bin/openocd",
+            "debugServerArgs": "-f interface/stlink-v2.cfg -f target/stm32f1x.cfg",
+            "customLaunchSetupCommands": [
+                
+            ],
+            "stopAtEntry": true,
+            "logging": {
+                "exceptions": true,
+                "moduleLoad": true,
+                "programOutput": true,
+                "engineLogging": false,
+                "trace": false,
+                "traceResponse": false
+            },
+            "externalConsole": false,
+            "filterStderr": true,
+            "filterStdout": false,
+            "showDisplayString": true,
+            "targetArchitecture": "arm"
+        }
+    ]
+}

@@ -1,0 +1,14 @@
+{
+    "files.associations": {
+        "usb_descriptors.h": "c",
+        "main.h": "c",
+        "uart.h": "c",
+        "steppers.h": "c",
+        "pinning.h": "c",
+        "ltp1245.h": "c",
+        "stm32f103x6.h": "c",
+        "stm32f1xx.h": "c",
+        "stm32f100xb.h": "c"
+    },
+    "C_Cpp.intelliSenseEngineFallback": "Enabled"
+}

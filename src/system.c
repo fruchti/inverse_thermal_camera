@@ -12,8 +12,8 @@ void SystemInit(void)
 
     FLASH->ACR |= FLASH_ACR_LATENCY_1;
 
-    // Set PLL to x9 (-> 72MHz system clock)
-    RCC->CFGR |= RCC_CFGR_PLLMULL9 | RCC_CFGR_PLLSRC | RCC_CFGR_PPRE1_2;
+    // Set PLL to x6 (-> 48MHz system clock)
+    RCC->CFGR |= RCC_CFGR_PLLMULL6 | RCC_CFGR_PLLSRC | RCC_CFGR_PPRE1_2;
 
     // Activate PLL and wait
     RCC->CR |= RCC_CR_PLLON;

@@ -40,11 +40,12 @@ static void InitStepper(void)
         | (0x01 << (4 * PIN_STEPPER_BP - 32))    // Output, max. 10 MHz
         ;
 
-    TIM3->PSC = 72000000 / 100 / LTP1245_MAX_DRIVE_FREQ - 1;
+    TIM3->PSC = 48000000 / 100 / LTP1245_MAX_DRIVE_FREQ - 1;
     TIM3->ARR = 100;
     TIM3->DIER = TIM_DIER_UIE;
     TIM3->CR1 = TIM_CR1_CEN;
 
+    NVIC_SetPriority(TIM3_IRQn, 1);
     NVIC_EnableIRQ(TIM3_IRQn);
 }
 
@@ -71,7 +72,7 @@ static void InitDataLines(void)
     RCC->APB1ENR |= RCC_APB1ENR_TIM2EN;
     RCC->AHBENR |= RCC_AHBENR_DMA1EN;
 
-    TIM2->PSC = 720 - 1;            // Each tick corresponds to ten microseconds
+    TIM2->PSC = 480 - 1;            // Each tick corresponds to ten microseconds
     TIM2->ARR = 201;                // 2 milliseconds
     TIM2->CCR3 = 1;
     TIM2->CCR4 = 1;
@@ -129,9 +130,11 @@ static void InitThermistor(void)
 
     // Enable EOC interrupt
     ADC1->CR1 = ADC_CR1_EOCIE;
+    NVIC_SetPriority(ADC1_2_IRQn, 7);
     NVIC_EnableIRQ(ADC1_2_IRQn);
 
     // The thermistor is connected to ADC12_IN8 (PB0)
+    ADC1->SQR1 = 0;
     ADC1->SQR3 = (8 << ADC_SQR3_SQ1_Pos);
     ADC1->SMPR2 = (7 << ADC_SMPR2_SMP8_Pos);
 
@@ -151,7 +154,7 @@ static void InitCutter(void)
         ;
 
     // Servo pulse length should be between 1 and 2 ms with a period of 20 ms
-    TIM4->PSC = 72 - 1;     // Divide to one microsecond
+    TIM4->PSC = 48 - 1;     // Divide to one microsecond
     TIM4->ARR = 20000;      // 50 Hz frequency
     TIM4->CCR2 = 1000;      // 1 millisecond
     TIM4->CCMR1 = TIM_CCMR1_OC2M_2 | TIM_CCMR1_OC2M_1;
@@ -429,65 +432,77 @@ void TIM3_IRQHandler(void)
 
 void ADC1_2_IRQHandler(void)
 {
-    const int READINGS[] =
-    {
-        4095.0 * (1.0 - LTP1245_TH_REXT / (LTP1245_TH_REXT + 375.54)), // -40 °C
-        4095.0 * (1.0 - LTP1245_TH_REXT / (LTP1245_TH_REXT + 275.39)), // -35 °C
-        4095.0 * (1.0 - LTP1245_TH_REXT / (LTP1245_TH_REXT + 204.55)), // -30 °C
-        4095.0 * (1.0 - LTP1245_TH_REXT / (LTP1245_TH_REXT + 153.76)), // -25 °C
-        4095.0 * (1.0 - LTP1245_TH_REXT / (LTP1245_TH_REXT + 116.89)), // -20 °C
-        4095.0 * (1.0 - LTP1245_TH_REXT / (LTP1245_TH_REXT + 89.82)),  // -15 °C
-        4095.0 * (1.0 - LTP1245_TH_REXT / (LTP1245_TH_REXT + 69.71)),  // -10 °C
-        4095.0 * (1.0 - LTP1245_TH_REXT / (LTP1245_TH_REXT + 54.61)),  // -5 °C
-        4095.0 * (1.0 - LTP1245_TH_REXT / (LTP1245_TH_REXT + 43.17)),  // 0 °C
-        4095.0 * (1.0 - LTP1245_TH_REXT / (LTP1245_TH_REXT + 34.42)),  // 5 °C
-        4095.0 * (1.0 - LTP1245_TH_REXT / (LTP1245_TH_REXT + 27.66)),  // 10 °C
-        4095.0 * (1.0 - LTP1245_TH_REXT / (LTP1245_TH_REXT + 22.40)),  // 15 °C
-        4095.0 * (1.0 - LTP1245_TH_REXT / (LTP1245_TH_REXT + 18.27)),  // 20 °C
-        4095.0 * (1.0 - LTP1245_TH_REXT / (LTP1245_TH_REXT + 15.00)),  // 25 °C
-        4095.0 * (1.0 - LTP1245_TH_REXT / (LTP1245_TH_REXT + 12.40)),  // 30 °C
-        4095.0 * (1.0 - LTP1245_TH_REXT / (LTP1245_TH_REXT + 10.31)),  // 35 °C
-        4095.0 * (1.0 - LTP1245_TH_REXT / (LTP1245_TH_REXT + 8.63)),   // 40 °C
-        4095.0 * (1.0 - LTP1245_TH_REXT / (LTP1245_TH_REXT + 7.26)),   // 45 °C
-        4095.0 * (1.0 - LTP1245_TH_REXT / (LTP1245_TH_REXT + 6.14)),   // 50 °C
-        4095.0 * (1.0 - LTP1245_TH_REXT / (LTP1245_TH_REXT + 5.22)),   // 55 °C
-        4095.0 * (1.0 - LTP1245_TH_REXT / (LTP1245_TH_REXT + 4.46)),   // 60 °C
-        4095.0 * (1.0 - LTP1245_TH_REXT / (LTP1245_TH_REXT + 3.83)),   // 65 °C
-        4095.0 * (1.0 - LTP1245_TH_REXT / (LTP1245_TH_REXT + 3.30)),   // 70 °C
-        4095.0 * (1.0 - LTP1245_TH_REXT / (LTP1245_TH_REXT + 2.86)),   // 75 °C
-        4095.0 * (1.0 - LTP1245_TH_REXT / (LTP1245_TH_REXT + 2.48)),   // 80 °C
-        4095.0 * (1.0 - LTP1245_TH_REXT / (LTP1245_TH_REXT + 2.17)),   // 85 °C
-        4095.0 * (1.0 - LTP1245_TH_REXT / (LTP1245_TH_REXT + 1.90)),   // 90 °C
-        4095.0 * (1.0 - LTP1245_TH_REXT / (LTP1245_TH_REXT + 1.67)),   // 95 °C
-        4095.0 * (1.0 - LTP1245_TH_REXT / (LTP1245_TH_REXT + 1.47))    // 100 °C
-    };
+    static unsigned average = 0;
+    static int average_counter = 0;
 
-    int adc = ADC1->DR;
-    
-    // Find first temperature higher than the measured one
-    int lower_entry = 0;
-    for(int i = 1; i < sizeof(READINGS) / sizeof(READINGS[0]); i++)
+    average += ADC1->DR;
+    average_counter++;
+
+    if(average_counter == 16)
     {
-        if(adc >= READINGS[i])
+        const int READINGS[] =
         {
-            lower_entry = i - 1;
-            break;
+            4095.0 * (1.0 - LTP1245_TH_REXT / (LTP1245_TH_REXT + 375.54)), // -40 °C
+            4095.0 * (1.0 - LTP1245_TH_REXT / (LTP1245_TH_REXT + 275.39)), // -35 °C
+            4095.0 * (1.0 - LTP1245_TH_REXT / (LTP1245_TH_REXT + 204.55)), // -30 °C
+            4095.0 * (1.0 - LTP1245_TH_REXT / (LTP1245_TH_REXT + 153.76)), // -25 °C
+            4095.0 * (1.0 - LTP1245_TH_REXT / (LTP1245_TH_REXT + 116.89)), // -20 °C
+            4095.0 * (1.0 - LTP1245_TH_REXT / (LTP1245_TH_REXT + 89.82)),  // -15 °C
+            4095.0 * (1.0 - LTP1245_TH_REXT / (LTP1245_TH_REXT + 69.71)),  // -10 °C
+            4095.0 * (1.0 - LTP1245_TH_REXT / (LTP1245_TH_REXT + 54.61)),  // -5 °C
+            4095.0 * (1.0 - LTP1245_TH_REXT / (LTP1245_TH_REXT + 43.17)),  // 0 °C
+            4095.0 * (1.0 - LTP1245_TH_REXT / (LTP1245_TH_REXT + 34.42)),  // 5 °C
+            4095.0 * (1.0 - LTP1245_TH_REXT / (LTP1245_TH_REXT + 27.66)),  // 10 °C
+            4095.0 * (1.0 - LTP1245_TH_REXT / (LTP1245_TH_REXT + 22.40)),  // 15 °C
+            4095.0 * (1.0 - LTP1245_TH_REXT / (LTP1245_TH_REXT + 18.27)),  // 20 °C
+            4095.0 * (1.0 - LTP1245_TH_REXT / (LTP1245_TH_REXT + 15.00)),  // 25 °C
+            4095.0 * (1.0 - LTP1245_TH_REXT / (LTP1245_TH_REXT + 12.40)),  // 30 °C
+            4095.0 * (1.0 - LTP1245_TH_REXT / (LTP1245_TH_REXT + 10.31)),  // 35 °C
+            4095.0 * (1.0 - LTP1245_TH_REXT / (LTP1245_TH_REXT + 8.63)),   // 40 °C
+            4095.0 * (1.0 - LTP1245_TH_REXT / (LTP1245_TH_REXT + 7.26)),   // 45 °C
+            4095.0 * (1.0 - LTP1245_TH_REXT / (LTP1245_TH_REXT + 6.14)),   // 50 °C
+            4095.0 * (1.0 - LTP1245_TH_REXT / (LTP1245_TH_REXT + 5.22)),   // 55 °C
+            4095.0 * (1.0 - LTP1245_TH_REXT / (LTP1245_TH_REXT + 4.46)),   // 60 °C
+            4095.0 * (1.0 - LTP1245_TH_REXT / (LTP1245_TH_REXT + 3.83)),   // 65 °C
+            4095.0 * (1.0 - LTP1245_TH_REXT / (LTP1245_TH_REXT + 3.30)),   // 70 °C
+            4095.0 * (1.0 - LTP1245_TH_REXT / (LTP1245_TH_REXT + 2.86)),   // 75 °C
+            4095.0 * (1.0 - LTP1245_TH_REXT / (LTP1245_TH_REXT + 2.48)),   // 80 °C
+            4095.0 * (1.0 - LTP1245_TH_REXT / (LTP1245_TH_REXT + 2.17)),   // 85 °C
+            4095.0 * (1.0 - LTP1245_TH_REXT / (LTP1245_TH_REXT + 1.90)),   // 90 °C
+            4095.0 * (1.0 - LTP1245_TH_REXT / (LTP1245_TH_REXT + 1.67)),   // 95 °C
+            4095.0 * (1.0 - LTP1245_TH_REXT / (LTP1245_TH_REXT + 1.47))    // 100 °C
+        };
+
+        int adc = average / 16;
+        
+        // Find first temperature higher than the measured one
+        int lower_entry = 0;
+        for(int i = 1; i < sizeof(READINGS) / sizeof(READINGS[0]); i++)
+        {
+            if(adc >= READINGS[i])
+            {
+                lower_entry = i - 1;
+                break;
+            }
         }
-    }
-    int higher_entry = lower_entry + 1;
-    int temp = lower_entry * 5 - 40;    // Temperature in °C
+        int higher_entry = lower_entry + 1;
+        int temp = lower_entry * 5 - 40;    // Temperature in °C
 
-    // Interpolate linearly
-    if(higher_entry < sizeof(READINGS) / sizeof(READINGS[0]))
-    {
-        int diff = READINGS[lower_entry] - READINGS[higher_entry];
-        temp += (READINGS[lower_entry] - adc) * 5 / diff;
-    }
+        // Interpolate linearly
+        if(higher_entry < sizeof(READINGS) / sizeof(READINGS[0]))
+        {
+            int diff = READINGS[lower_entry] - READINGS[higher_entry];
+            temp += (READINGS[lower_entry] - adc) * 5 / diff;
+        }
 
-    // Use the formula from section 3.6, adjusted for integer arithmetic and
-    // a pulse with in microseconds
-    PulseWidth = (285 * 178 - (int)(1000 * 178 * 0.003135) * (temp - 25))
-        / (int)((5 * 1.4 - 2.9) * (5 * 1.4 - 2.9));
+        // Use the formula from section 3.6, adjusted for integer arithmetic and
+        // a pulse with in microseconds
+        PulseWidth = (285 * 178 - (int)(1000 * 178 * 0.003135) * (temp - 25))
+            / (int)((5 * 1.4 - 2.9) * (5 * 1.4 - 2.9));
+
+        average_counter = 0;
+        average = 0;
+    }
 }
 
 void TIM4_IRQHandler(void)

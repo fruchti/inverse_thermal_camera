@@ -23,8 +23,8 @@ void SystemInit(void)
     RCC->CFGR = (RCC->CFGR & ~RCC_CFGR_SW) | RCC_CFGR_SW_1;
 
     // Resulting clocks:
-    // SYSCLK, AHB, APB2 72 Mhz
-    // APB1, ADC 36 MHz
+    // SYSCLK, AHB, APB2 48 Mhz
+    // APB1, ADC 24 MHz
 
     // Disable all interrupts
     RCC->CIR = 0x00000000;

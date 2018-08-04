@@ -1,8 +1,7 @@
 #include "ltp1245.h"
 #include "pinning.h"
 
-#define LINEWIDTH               (64 * 6)
-uint8_t LTP1245_Buffer[LINEWIDTH / 8 * LTP1245_BUFFER_LINES];
+uint8_t LTP1245_Buffer[LTP1245_LINEWIDTH / 8 * LTP1245_BUFFER_LINES];
 
 typedef struct State_t
 {
@@ -12,8 +11,14 @@ typedef struct State_t
 static volatile int Stepper_Delta = 0;
 static int PrintLines;
 static int CurrentBufferLine;
-bool Printing = false;
 static volatile int PulseWidth = 2000;
+
+// Main State machine states
+static State_t State_Idle(void);
+static State_t State_PaperLoad(void);
+static State_t State_Printing(void);
+static State_t State_PaperFeed(void);
+static volatile State_t State = {State_Idle};
 
 static void InitStepper(void)
 {
@@ -169,17 +174,9 @@ static void SendLine(uint8_t *line)
     while(DMA1_Channel5->CNDTR);
     DMA1_Channel5->CCR &= ~DMA_CCR_EN;
     DMA1_Channel5->CMAR = (uint32_t)line;
-    DMA1_Channel5->CNDTR = LINEWIDTH / 8;
+    DMA1_Channel5->CNDTR = LTP1245_LINEWIDTH / 8;
     DMA1_Channel5->CCR |= DMA_CCR_EN;
 }
-
-// Main state machine states
-
-static State_t State_Idle(void);
-static State_t State_PaperLoad(void);
-static State_t State_InitialPaperFeed(void);
-static State_t State_Printing(void);
-static State_t State_FinalPaperFeed(void);
 
 // Automatic paper loading
 static State_t State_PaperLoad(void)
@@ -205,22 +202,11 @@ static State_t State_PaperLoad(void)
     return (State_t){State_PaperLoad};
 }
 
-// Paper feed before printing
-static State_t State_InitialPaperFeed(void)
-{
-    if(Stepper_Delta == 0)
-    {
-        return (State_t){State_Printing};
-    }
-    return (State_t){State_InitialPaperFeed};
-}
-
 // Actual printing
 static State_t State_Printing(void)
 {
     if(!HeadDown() || !HasPaper())
     {
-        Printing = false;
         return (State_t){State_Idle};
     }
 
@@ -230,13 +216,9 @@ static State_t State_Printing(void)
     }
     else if(Stepper_Delta == 0)
     {
-        SendLine(LTP1245_Buffer + CurrentBufferLine * LINEWIDTH / 8);
+        SendLine(LTP1245_Buffer + CurrentBufferLine * LTP1245_LINEWIDTH / 8);
         ActivateHead(3);
         CurrentBufferLine++;
-        if(CurrentBufferLine >= LTP1245_BUFFER_LINES)
-        {
-            CurrentBufferLine = 0;
-        }
 
         PrintLines--;
 
@@ -246,27 +228,26 @@ static State_t State_Printing(void)
         }
         else
         {
-            Stepper_Delta = 500;
-            return (State_t){State_FinalPaperFeed};
+            // Print done
+            Stepper_Delta = 1;
+            return (State_t){State_Idle};
         }
     }
     return (State_t){State_Printing};
 }
 
-// Paper feed after printing
-static State_t State_FinalPaperFeed(void)
+static State_t State_PaperFeed(void)
 {
-    if(!HasPaper() || !HeadDown())
+    if(!HasPaper())
     {
-        Printing = false;
         return (State_t){State_Idle};
     }
+
     if(Stepper_Delta == 0)
     {
-        Printing = false;
         return (State_t){State_Idle};
     }
-    return (State_t){State_FinalPaperFeed};
+    return (State_t){State_PaperFeed};
 }
 
 static State_t State_Idle(void)
@@ -275,19 +256,54 @@ static State_t State_Idle(void)
     {
         return (State_t){State_PaperLoad};
     }
-    if(Printing)
-    {
-        Stepper_Delta = 200;
-        return (State_t){State_InitialPaperFeed};
-    }
     return (State_t){State_Idle};
 }
 
-void LTP1245_Print(void)
+LTP1245_Result_t LTP1245_Print(uint8_t *data, int lines)
 {
-    PrintLines = LTP1245_BUFFER_LINES * 5;
+    do
+    {
+        if(!HasPaper())
+        {
+            return LTP1245_NO_PAPER;
+        }
+        if(!HeadDown())
+        {
+            return LTP1245_HEAD_UP;
+        }
+    } while(State.fn != State_Idle);
+
+    if(lines > LTP1245_BUFFER_LINES)
+    {
+        lines = LTP1245_BUFFER_LINES;
+    }
+
+    memcpy(LTP1245_Buffer, data, lines * LTP1245_LINEWIDTH / 8);
+    PrintLines = lines;
     CurrentBufferLine = 0;
-    Printing = true;
+    State = (State_t){State_Printing};
+
+    return LTP1245_OK;
+}
+
+LTP1245_Result_t LTP1245_FeedPaper(int lines)
+{
+    do
+    {
+        if(!HasPaper())
+        {
+            return LTP1245_NO_PAPER;
+        }
+        if(!HeadDown())
+        {
+            return LTP1245_HEAD_UP;
+        }
+    } while(State.fn != State_Idle);
+
+    Stepper_Delta = lines;
+    State = (State_t){State_PaperFeed};
+
+    return LTP1245_OK;
 }
 
 void LTP1245_Init(void)
@@ -296,21 +312,11 @@ void LTP1245_Init(void)
     InitSensors();
     InitStepper();
     InitThermistor();
-
-    for(int i = 0; i < sizeof(LTP1245_Buffer); i++)
-    {
-        int shift = (i * 8 / (64 * 6)) % 8;
-        LTP1245_Buffer[i] =(0x11 << shift) | (0x11 >> (8 - shift));
-    }
-
-    LTP1245_Print();
 }
 
 void AdvanceStateMachine(void)
 {
-    static State_t state = {State_Idle};
-
-    state = state.fn();
+    State = State.fn();
 }
 
 void TIM3_IRQHandler(void)

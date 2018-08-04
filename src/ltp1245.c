@@ -60,6 +60,7 @@ static void InitDataLines(void)
     RCC->APB2ENR |= RCC_APB2ENR_AFIOEN;
     RCC->APB1ENR |= RCC_APB1ENR_SPI2EN;
     RCC->APB1ENR |= RCC_APB1ENR_TIM2EN;
+    RCC->AHBENR |= RCC_AHBENR_DMA1EN;
 
     TIM2->PSC = 719;                // Each tick corresponds to ten microseconds
     TIM2->ARR = 201;                // 2 milliseconds
@@ -91,6 +92,12 @@ static void InitDataLines(void)
 
     SPI2->CR1 = SPI_CR1_BIDIMODE | SPI_CR1_BIDIOE | SPI_CR1_SPE | SPI_CR1_MSTR
         | SPI_CR1_BR_2;
+    SPI2->CR2 = SPI_CR2_TXDMAEN;
+
+    // SPI2_TX <-> DMA1_Channel5
+    DMA1_Channel5->CCR = DMA_CCR_MINC | DMA_CCR_TCIE | DMA_CCR_DIR;
+    DMA1_Channel5->CPAR = (uint32_t)&(SPI2->DR);
+    NVIC_EnableIRQ(DMA1_Channel5_IRQn);
 }
 
 static void InitThermistor(void)
@@ -158,15 +165,12 @@ void ActivateHead(int mask)
 
 static void SendLine(uint8_t *line)
 {
-    for(int i = 0; i < LINEWIDTH / 8; i++)
-    {
-        while(~SPI2->SR & SPI_SR_TXE);
-        *((volatile uint8_t*)(&SPI2->DR)) = line[i];
-    }
-    while(SPI2->SR & SPI_SR_BSY);
-    GPIOB->BSRR = (1 << PIN_LATCH);
-    for(volatile int i = 0; i < 1000; i++);
-    GPIOB->BRR = (1 << PIN_LATCH);
+    // Wait for previous transfer
+    while(DMA1_Channel5->CNDTR);
+    DMA1_Channel5->CCR &= ~DMA_CCR_EN;
+    DMA1_Channel5->CMAR = (uint32_t)line;
+    DMA1_Channel5->CNDTR = LINEWIDTH / 8;
+    DMA1_Channel5->CCR |= DMA_CCR_EN;
 }
 
 // Main state machine states
@@ -281,7 +285,7 @@ static State_t State_Idle(void)
 
 void LTP1245_Print(void)
 {
-    PrintLines = LTP1245_BUFFER_LINES * 20;
+    PrintLines = LTP1245_BUFFER_LINES * 5;
     CurrentBufferLine = 0;
     Printing = true;
 }
@@ -420,4 +424,14 @@ void ADC1_2_IRQHandler(void)
     // a pulse with in microseconds
     PulseWidth = (285 * 178 - (int)(1000 * 178 * 0.003135) * (temp - 25))
         / (int)((5 * 1.4 - 2.9) * (5 * 1.4 - 2.9));
+}
+
+void DMA1_Channel5_IRQHandler(void)
+{
+    DMA1->IFCR = DMA_IFCR_CTCIF5;
+
+    // Generate LATCH pulse
+    GPIOB->BSRR = (1 << PIN_LATCH);
+    for(volatile int i = 0; i < 1000; i++);
+    GPIOB->BRR = (1 << PIN_LATCH);
 }

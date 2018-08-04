@@ -18,6 +18,7 @@ static State_t State_Idle(void);
 static State_t State_PaperLoad(void);
 static State_t State_Printing(void);
 static State_t State_PaperFeed(void);
+static State_t State_Cutting(void);
 static volatile State_t State = {State_Idle};
 
 static void InitStepper(void)
@@ -70,7 +71,7 @@ static void InitDataLines(void)
     RCC->APB1ENR |= RCC_APB1ENR_TIM2EN;
     RCC->AHBENR |= RCC_AHBENR_DMA1EN;
 
-    TIM2->PSC = 719;                // Each tick corresponds to ten microseconds
+    TIM2->PSC = 720 - 1;            // Each tick corresponds to ten microseconds
     TIM2->ARR = 201;                // 2 milliseconds
     TIM2->CCR3 = 1;
     TIM2->CCR4 = 1;
@@ -114,8 +115,8 @@ static void InitThermistor(void)
     RCC->APB2ENR |= RCC_APB2ENR_ADC1EN;
 
     GPIOB->CRL = (GPIOB->CRL
-        & ~(0x0f << PIN_THERMISTOR))
-        | (0x00 << PIN_THERMISTOR)          // Analog mode
+        & ~(0x0f << (4 * PIN_THERMISTOR)))
+        | (0x00 << (4 * PIN_THERMISTOR))    // Analog mode
         ;
     
     // Enable ADC
@@ -137,6 +138,27 @@ static void InitThermistor(void)
     // Start conversion, continuous mode
     ADC1->CR2 |= ADC_CR2_CONT;
     ADC1->CR2 |= ADC_CR2_ADON;
+}
+
+static void InitCutter(void)
+{
+    RCC->APB1ENR |= RCC_APB1ENR_TIM4EN;
+    RCC->APB2ENR |= RCC_APB2ENR_IOPBEN;
+
+    GPIOB->CRL = (GPIOB->CRL
+        & ~(0xf << (4 * PIN_PAPER_CUT)))
+        | (0x09 << (4 * PIN_PAPER_CUT))     // Output in AF mode, max. 10 MHz
+        ;
+
+    // Servo pulse length should be between 1 and 2 ms with a period of 20 ms
+    TIM4->PSC = 72 - 1;     // Divide to one microsecond
+    TIM4->ARR = 20000;      // 50 Hz frequency
+    TIM4->CCR2 = 1000;      // 1 millisecond
+    TIM4->CCMR1 = TIM_CCMR1_OC2M_2 | TIM_CCMR1_OC2M_1;
+    TIM4->CR1 = TIM_CR1_CEN;
+    TIM4->CCER = TIM_CCER_CC2E;
+
+    NVIC_EnableIRQ(TIM4_IRQn);
 }
 
 static bool HasPaper(void)
@@ -253,6 +275,17 @@ static State_t State_PaperFeed(void)
     return (State_t){State_PaperFeed};
 }
 
+static State_t State_Cutting(void)
+{
+    // The timer interrupt is deactived once a sufficient number of pulses is
+    // generated
+    if(~TIM4->DIER & TIM_DIER_UIE)
+    {
+        return (State_t){State_Idle};
+    }
+    return (State_t){State_Cutting};
+}
+
 static State_t State_Idle(void)
 {
     if(!HasPaper())
@@ -309,8 +342,30 @@ LTP1245_Result_t LTP1245_FeedPaper(int lines)
     return LTP1245_OK;
 }
 
+LTP1245_Result_t LTP1245_Cut(void)
+{
+    do
+    {
+        if(!HasPaper())
+        {
+            return LTP1245_NO_PAPER;
+        }
+        if(!HeadDown())
+        {
+            return LTP1245_HEAD_UP;
+        }
+    } while(State.fn != State_Idle);
+
+    TIM4->CCR2 = 2000;
+    TIM4->DIER = TIM_DIER_UIE;
+    State = (State_t){State_Cutting};
+
+    return LTP1245_OK;
+}
+
 void LTP1245_Init(void)
 {
+    InitCutter();
     InitDataLines();
     InitSensors();
     InitStepper();
@@ -433,6 +488,33 @@ void ADC1_2_IRQHandler(void)
     // a pulse with in microseconds
     PulseWidth = (285 * 178 - (int)(1000 * 178 * 0.003135) * (temp - 25))
         / (int)((5 * 1.4 - 2.9) * (5 * 1.4 - 2.9));
+}
+
+void TIM4_IRQHandler(void)
+{
+    if(TIM4->SR & TIM_SR_UIF)
+    {
+        static int ct = 0;
+
+        if(ct == 0)
+        {
+            ct = LTP1245_CUT_DURATION;
+        }
+        else
+        {
+            ct--;
+            if(ct == 0)
+            {
+                TIM4->DIER &= ~TIM_DIER_UIE;
+            }
+            else if(ct == LTP1245_CUT_DURATION / 2)
+            {
+                TIM4->CCR2 = 1000;      // Back to -90 deg
+            }
+        }
+
+        TIM4->SR &= ~TIM_SR_UIF;
+    }
 }
 
 void DMA1_Channel5_IRQHandler(void)

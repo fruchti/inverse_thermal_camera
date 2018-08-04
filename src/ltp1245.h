@@ -13,6 +13,7 @@ typedef enum
 } LTP1245_Result_t;
 
 #define LTP1245_MAX_DRIVE_FREQ  473     // In Hz
+#define LTP1245_CUT_DURATION    50      // In steps of 20 ms
 #define LTP1245_BUFFER_LINES    64
 #define LTP1245_LINEWIDTH       384     // In pixels
 #define LTP1245_LINE_BYTES      (LTP1245_LINEWIDTH / 8)
@@ -22,3 +23,4 @@ typedef enum
 void LTP1245_Init(void);
 LTP1245_Result_t LTP1245_FeedPaper(int lines);
 LTP1245_Result_t LTP1245_Print(uint8_t *data, int lines);
+LTP1245_Result_t LTP1245_Cut(void);

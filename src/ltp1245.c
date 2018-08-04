@@ -25,15 +25,18 @@ static void InitStepper(void)
     RCC->APB2ENR |= RCC_APB2ENR_IOPAEN;
     RCC->APB1ENR |= RCC_APB1ENR_TIM3EN;
 
-    GPIOA->CRL = (GPIOA->CRL
-        & ~(0x0f << (4 * PIN_STEPPER_AM))
-        & ~(0x0f << (4 * PIN_STEPPER_AP))
-        & ~(0x0f << (4 * PIN_STEPPER_BM))
-        & ~(0x0f << (4 * PIN_STEPPER_BP)))
-        | (0x01 << (4 * PIN_STEPPER_AM))    // Output, max. 10 MHz
-        | (0x01 << (4 * PIN_STEPPER_AP))    // Output, max. 10 MHz
-        | (0x01 << (4 * PIN_STEPPER_BM))    // Output, max. 10 MHz
-        | (0x01 << (4 * PIN_STEPPER_BP))    // Output, max. 10 MHz
+    // PA15 is used for stepper control, so JTAG has to be disabled
+    AFIO->MAPR |= AFIO_MAPR_SWJ_CFG_1;
+
+    GPIOA->CRH = (GPIOA->CRH
+        & ~(0x0f << (4 * PIN_STEPPER_AM - 32))
+        & ~(0x0f << (4 * PIN_STEPPER_AP - 32))
+        & ~(0x0f << (4 * PIN_STEPPER_BM - 32))
+        & ~(0x0f << (4 * PIN_STEPPER_BP - 32)))
+        | (0x01 << (4 * PIN_STEPPER_AM - 32))    // Output, max. 10 MHz
+        | (0x01 << (4 * PIN_STEPPER_AP - 32))    // Output, max. 10 MHz
+        | (0x01 << (4 * PIN_STEPPER_BM - 32))    // Output, max. 10 MHz
+        | (0x01 << (4 * PIN_STEPPER_BP - 32))    // Output, max. 10 MHz
         ;
 
     TIM3->PSC = 72000000 / 100 / LTP1245_MAX_DRIVE_FREQ - 1;
@@ -46,9 +49,9 @@ static void InitStepper(void)
 
 static void InitSensors(void)
 {
-    RCC->APB2ENR |= RCC_APB2ENR_IOPAEN;
+    RCC->APB2ENR |= RCC_APB2ENR_IOPBEN;
 
-    GPIOA->CRL = (GPIOA->CRL
+    GPIOB->CRL = (GPIOB->CRL
         & ~(0x0f << (4 * PIN_HEAD))
         & ~(0x0f << (4 * PIN_PAPER)))
         | (0x08 << (4 * PIN_HEAD))          // Input with pull-up/pull-down
@@ -56,7 +59,7 @@ static void InitSensors(void)
         ;
 
     // Use pull-ups
-    GPIOA->BSRR = (1 << PIN_HEAD) | (1 << PIN_PAPER);
+    GPIOB->BSRR = (1 << PIN_HEAD) | (1 << PIN_PAPER);
 }
 
 static void InitDataLines(void)
@@ -138,12 +141,12 @@ static void InitThermistor(void)
 
 static bool HasPaper(void)
 {
-    return !(GPIOA->IDR & (1 << PIN_PAPER));
+    return !(GPIOB->IDR & (1 << PIN_PAPER));
 }
 
 static bool HeadDown(void)
 {
-    return !(GPIOA->IDR & (1 << PIN_HEAD));
+    return !(GPIOB->IDR & (1 << PIN_HEAD));
 }
 
 void ActivateHead(int mask)
@@ -152,7 +155,7 @@ void ActivateHead(int mask)
     while(TIM2->CR1 & TIM_CR1_CEN);
 
     // Set activation pulse width
-    TIM2->ARR = (PulseWidth / 5) + 1;
+    TIM2->ARR = (PulseWidth / 10) + 1;
 
     TIM2->CCER = 0;
     if(mask & 1)

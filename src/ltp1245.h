@@ -15,6 +15,7 @@ typedef enum
 #define LTP1245_MAX_DRIVE_FREQ  473     // In Hz
 #define LTP1245_BUFFER_LINES    64
 #define LTP1245_LINEWIDTH       384     // In pixels
+#define LTP1245_LINE_BYTES      (LTP1245_LINEWIDTH / 8)
 
 #define LTP1245_TH_REXT         10      // In kΩ
 

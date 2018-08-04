@@ -9,6 +9,11 @@
 #include "debug.h"
 #include "usb.h"
 #include "ltp1245.h"
+#include "print.h"
+#include "font_hannover_messe_serif_26.h"
+#include "font_messe_duesseldorf_39.h"
+#include "font_arpegius_16.h"
+#include "font_arpegius_32.h"
 
 int main(void);
 

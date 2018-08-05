@@ -24,10 +24,12 @@ static volatile State_t State = {State_Idle};
 static void InitStepper(void)
 {
     RCC->APB2ENR |= RCC_APB2ENR_IOPAEN;
-    RCC->APB1ENR |= RCC_APB1ENR_TIM3EN;
 
     // PA15 is used for stepper control, so JTAG has to be disabled
     AFIO->MAPR |= AFIO_MAPR_SWJ_CFG_1;
+
+    GPIOA->BRR = (1 << PIN_STEPPER_AM) | (1 << PIN_STEPPER_AP)
+        | (1 << PIN_STEPPER_BM) | (1 << PIN_STEPPER_BP);
 
     GPIOA->CRH = (GPIOA->CRH
         & ~(0x0f << (4 * PIN_STEPPER_AM - 32))
@@ -40,13 +42,8 @@ static void InitStepper(void)
         | (0x01 << (4 * PIN_STEPPER_BP - 32))    // Output, max. 10 MHz
         ;
 
-    TIM3->PSC = 48000000 / 100 / LTP1245_MAX_DRIVE_FREQ - 1;
-    TIM3->ARR = 100;
-    TIM3->DIER = TIM_DIER_UIE;
-    TIM3->CR1 = TIM_CR1_CEN;
-
-    NVIC_SetPriority(TIM3_IRQn, 1);
-    NVIC_EnableIRQ(TIM3_IRQn);
+    // The SysTick is clocked by AHB / 8
+    SysTick_Config(48000000 / 8 / LTP1245_MAX_DRIVE_FREQ - 1);
 }
 
 static void InitSensors(void)
@@ -380,54 +377,49 @@ void AdvanceStateMachine(void)
     State = State.fn();
 }
 
-void TIM3_IRQHandler(void)
+void SysTick_Handler(void)
 {
-    if(TIM3->SR & TIM_SR_UIF)
+    static int substep = 0;
+    static bool off;
+    const int TABLE[] = {0, 1, 3, 2};
+    const int GPIO_MASK = ((1 << PIN_STEPPER_AM) | (1 << PIN_STEPPER_AP)
+        | (1 << PIN_STEPPER_BM) | (1 << PIN_STEPPER_BP));
+
+    if(Stepper_Delta != 0)
     {
-        static int substep = 0;
-        static bool off;
-        const int TABLE[] = {0, 1, 3, 2};
-        const int GPIO_MASK = ((1 << PIN_STEPPER_AM) | (1 << PIN_STEPPER_AP)
-            | (1 << PIN_STEPPER_BM) | (1 << PIN_STEPPER_BP));
-
-        if(Stepper_Delta != 0)
+        off = false;
+        if(Stepper_Delta > 0)
         {
-            off = false;
-            if(Stepper_Delta > 0)
-            {
-                substep++;
-                if(substep > 3)
-                    substep = 0;
-                Stepper_Delta--;
-            }
-            else
-            {
-                substep--;
-                if(substep < 0)
-                    substep = 3;
-                Stepper_Delta++;
-            }
-
-            GPIOA->ODR = (GPIOA->ODR & ~GPIO_MASK)
-                | ((TABLE[substep] & 1) ? (1 << PIN_STEPPER_AP)
-                                        : (1 << PIN_STEPPER_AM))
-                | ((TABLE[substep] & 2) ? (1 << PIN_STEPPER_BP)
-                                        : (1 << PIN_STEPPER_BM));
+            substep++;
+            if(substep > 3)
+                substep = 0;
+            Stepper_Delta--;
         }
         else
         {
-            if(off)
-            {
-                GPIOA->ODR = (GPIOA->ODR & ~GPIO_MASK);
-                substep = 0;
-            }
-            off = true;
+            substep--;
+            if(substep < 0)
+                substep = 3;
+            Stepper_Delta++;
         }
 
-        AdvanceStateMachine();
-
-        TIM3->SR &= ~TIM_SR_UIF;
+        GPIOA->ODR = (GPIOA->ODR & ~GPIO_MASK)
+            | ((TABLE[substep] & 1) ? (1 << PIN_STEPPER_AP)
+                                    : (1 << PIN_STEPPER_AM))
+            | ((TABLE[substep] & 2) ? (1 << PIN_STEPPER_BP)
+                                    : (1 << PIN_STEPPER_BM));
     }
+    else
+    {
+        if(off)
+        {
+            GPIOA->ODR = (GPIOA->ODR & ~GPIO_MASK);
+            substep = 0;
+        }
+        off = true;
+    }
+
+    AdvanceStateMachine();
 }
 
 void ADC1_2_IRQHandler(void)

@@ -30,8 +30,8 @@ int main(void)
 
     while(!Camera_Captured);
 
-    extern uint8_t ImageBuffer[176 * 144 / 8];
-    Print_Image(ImageBuffer, 176, 144);
+    extern uint8_t ImageBuffer[CAMERA_IMAGE_WIDTH * CAMERA_IMAGE_HEIGHT / 8];
+    Print_Image(ImageBuffer, CAMERA_IMAGE_WIDTH, CAMERA_IMAGE_HEIGHT);
 
     for(;;)
     {

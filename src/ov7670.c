@@ -148,10 +148,10 @@
 
 #define I2C_ADDRESS             0x42
 
-uint8_t ImageBuffer[176 * 144 / 8];
+uint8_t ImageBuffer[CAMERA_IMAGE_WIDTH * CAMERA_IMAGE_HEIGHT / 8];
 static volatile int CurrentLine = 0;
-uint8_t LineBuffer1[176 * 2 + 40];
-uint8_t LineBuffer2[176 * 2 + 40];
+uint8_t LineBuffer1[CAMERA_IMAGE_WIDTH + 40];
+uint8_t LineBuffer2[CAMERA_IMAGE_WIDTH + 40];
 int LineCount = 0;
 static int FrameCount = 0;
 volatile int Camera_Captured = 0;
@@ -265,7 +265,7 @@ void Camera_Init(void)
     // pixel clock and should trigger DMA transfers
     TIM3->PSC = 0;
     TIM3->ARR = 1;
-    TIM3->CCMR1 = TIM_CCMR1_CC2S_0 | TIM_CCMR1_CC1S_0;
+    TIM3->CCMR1 = TIM_CCMR1_CC2S_0 | TIM_CCMR1_CC1S_0 | TIM_CCMR1_IC1PSC_0;
     TIM3->CCER = TIM_CCER_CC2P | TIM_CCER_CC2E | TIM_CCER_CC1E | TIM_CCER_CC1P;
     TIM3->DIER = TIM_DIER_CC2IE;
     TIM3->CR1 = TIM_CR1_CEN;
@@ -297,8 +297,8 @@ void Camera_Init(void)
     WriteRegister(REG_COM10, 0x20);
 
     // Enable pixel clock scaling
-    WriteRegister(REG_COM14, 0x18 | 2);
-    WriteRegister(REG_SCALING_PCLK_DIV, 2);
+    WriteRegister(REG_COM14, 0x18 | 1);
+    WriteRegister(REG_SCALING_PCLK_DIV, 1);
 }
 
 void TIM1_CC_IRQHandler(void)
@@ -328,6 +328,7 @@ void TIM3_IRQHandler(void)
     // HSYNC
 
     GPIOC->BRR = (1 << PIN_LED);
+
     TIM3->DIER &= ~TIM_DIER_CC1DE;
     TIM3->SR &= ~TIM_SR_CC1IF;
 
@@ -351,18 +352,20 @@ void TIM3_IRQHandler(void)
     if(!Camera_Captured)
     {
         int error = 0;
-        for(int i = 0; i < 176; i++)
+        for(int i = 0; i < CAMERA_IMAGE_WIDTH; i++)
         {
-            int pixel = filledbuffer[i * 2 + 33] + error;
+            int pixel = filledbuffer[i + 15] + error;
             if(pixel < 127)
             {
                 error = pixel;
-                ImageBuffer[(CurrentLine * 176 + i) / 8] |= 0x80 >> (i % 8);
+                ImageBuffer[(CurrentLine * CAMERA_IMAGE_WIDTH + i) / 8] |=
+                    0x80 >> (i % 8);
             }
             else
             {
                 error = pixel - 255;
-                ImageBuffer[(CurrentLine * 176 + i) / 8] &= ~(0x80 >> (i % 8));
+                ImageBuffer[(CurrentLine * CAMERA_IMAGE_WIDTH + i) / 8] &=
+                    ~(0x80 >> (i % 8));
             }
         }
     }

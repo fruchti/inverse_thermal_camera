@@ -55,7 +55,7 @@ void Print_Image(const uint8_t *data, int width, int height)
             memcpy(Print_Buffer + i * LTP1245_LINE_BYTES,
                 data + currentline * width / 8,
                 width / 8);
-            //memset(Print_Buffer + width / 8, 0, LTP1245_LINE_BYTES - width / 8);
+            memset(Print_Buffer + width / 8, 0, LTP1245_LINE_BYTES - width / 8);
             currentline++;
         }
 

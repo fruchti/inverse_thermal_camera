@@ -313,6 +313,9 @@ void TIM1_CC_IRQHandler(void)
     if(FrameCount == 10)
     {
         Camera_Captured = 1;
+        // Disable everything
+        TIM3->CR1 = 0;
+        TIM1->CR1 = 0;
     }
 
     // Dummy read
@@ -326,8 +329,6 @@ void TIM3_IRQHandler(void)
 {
     // HSYNC
 
-    GPIOC->BRR = (1 << PIN_LED);
-
     TIM3->DIER &= ~TIM_DIER_CC1DE;
     TIM3->SR &= ~TIM_SR_CC1IF;
 
@@ -337,7 +338,8 @@ void TIM3_IRQHandler(void)
     DMA1_Channel6->CCR = DMA_CCR_PL | DMA_CCR_MINC | DMA_CCR_EN;
     TIM3->DIER |= TIM_DIER_CC1DE;
 
-    if(!Camera_Captured && (~CurrentLine & 1))
+    if(!Camera_Captured && (~CurrentLine & 1)
+        && (CurrentLine / 2 < CAMERA_IMAGE_HEIGHT))
     {
         int error = 0;
         for(int i = 0; i < CAMERA_IMAGE_WIDTH; i++)
@@ -364,6 +366,4 @@ void TIM3_IRQHandler(void)
     // Dummy read
     TIM3->CCR2;
     TIM3->SR &= ~TIM_SR_CC2IF;
-
-    GPIOC->BSRR = (1 << PIN_LED);
 }

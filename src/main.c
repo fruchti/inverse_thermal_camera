@@ -11,16 +11,9 @@ int main(void)
 
     Camera_Init();
     LTP1245_Init();
-
-
-    char buff[30] = "Build No. ";
-    itoa(BUILD_NUMBER, buff + strlen(buff), 10);
-    Print_Text(buff, &Messe_Duesseldorf_39);
-
-    LTP1245_FeedPaper(2);
     
+    LTP1245_FeedPaper(100);
     LTP1245_FeedPaper(10);
-    // LTP1245_FeedPaper(10);
     // LTP1245_Cut();
 
     while(!Camera_Captured);
@@ -28,8 +21,12 @@ int main(void)
     extern uint8_t ImageBuffer[CAMERA_IMAGE_WIDTH * CAMERA_IMAGE_HEIGHT / 8];
     Print_Image(ImageBuffer, CAMERA_IMAGE_WIDTH, CAMERA_IMAGE_HEIGHT, 2);
 
+    LTP1245_FeedPaper(100);
+    LTP1245_FeedPaper(10);
+
     for(;;)
     {
+        __WFI();
     }
 }
 

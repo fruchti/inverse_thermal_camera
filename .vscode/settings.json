@@ -11,7 +11,8 @@
         "stm32f100xb.h": "c",
         "buildid.h": "c",
         "font_arpegius_32.h": "c",
-        "font_arpegius_16.h": "c"
+        "font_arpegius_16.h": "c",
+        "debug.h": "c"
     },
     "C_Cpp.intelliSenseEngineFallback": "Enabled"
 }

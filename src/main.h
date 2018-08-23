@@ -8,6 +8,7 @@
 #include "pinning.h"
 #include "buildid.h"
 #include "debug.h"
+#include "ov7670.h"
 #include "ltp1245.h"
 #include "print.h"
 #include "font_hannover_messe_serif_26.h"

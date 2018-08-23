@@ -10,7 +10,7 @@
 #define PIN_CAMERA_DB6          6   // PA6  - Camera data line 6
 #define PIN_CAMERA_DB7          7   // PA7  - Camera data line 7
 #define PIN_CAMERA_MCLK         8   // PA8  - Camera main clock (MCO/TIM1_CH1)
-#define PIN_CAMERA_PCLK         9   // PA9  - Camera pixel clock (TIM1_CH2)
+#define PIN_CAMERA_VSYNC        9   // PA9  - Camera VSYNC (TIM1_CH2)
 #define PIN_STEPPER_AP          10  // PA10 - Stepper phase A positive
 #define PIN_STEPPER_BP          11  // PA11 - Stepper phase B positive
 #define PIN_STEPPER_AM          12  // PA12 - Stepper phase A negative
@@ -21,7 +21,7 @@
 #define PIN_VBATT               1   // PB1  - Battery monitor (ADC12_IN9)
 #define PIN_SUPPLY              2   // PB2  - Voltage regulator enable
 #define PIN_PAPER               3   // PB3  - Paper detect
-#define PIN_CAMERA_VSYNC        4   // PB4  - Camera VSYNC (TIM3_CH1)
+#define PIN_CAMERA_PCLK         4   // PB4  - Camera pixel clock (TIM3_CH1)
 #define PIN_CAMERA_HSYNC        5   // PB5  - Camera VSYNC (TIM3_CH2)
 #define PIN_HEAD                6   // PB6  - Head up sensor
 #define PIN_PAPER_CUT           7   // PB7  - Paper cutter servo (TIM4_CH2)

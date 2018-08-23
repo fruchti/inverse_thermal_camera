@@ -150,8 +150,7 @@
 
 uint8_t ImageBuffer[CAMERA_IMAGE_WIDTH * CAMERA_IMAGE_HEIGHT / 8];
 static volatile int CurrentLine = 0;
-uint8_t LineBuffer1[CAMERA_IMAGE_WIDTH + 40];
-uint8_t LineBuffer2[CAMERA_IMAGE_WIDTH + 40];
+uint8_t LineBuffer[CAMERA_IMAGE_WIDTH + 40];
 int LineCount = 0;
 static int FrameCount = 0;
 volatile int Camera_Captured = 0;
@@ -265,7 +264,7 @@ void Camera_Init(void)
     // pixel clock and should trigger DMA transfers
     TIM3->PSC = 0;
     TIM3->ARR = 1;
-    TIM3->CCMR1 = TIM_CCMR1_CC2S_0 | TIM_CCMR1_CC1S_0 | TIM_CCMR1_IC1PSC_0;
+    TIM3->CCMR1 = TIM_CCMR1_CC2S_0 | TIM_CCMR1_CC1S_0 | TIM_CCMR1_IC1PSC_1;
     TIM3->CCER = TIM_CCER_CC2P | TIM_CCER_CC2E | TIM_CCER_CC1E | TIM_CCER_CC1P;
     TIM3->DIER = TIM_DIER_CC2IE;
     TIM3->CR1 = TIM_CR1_CEN;
@@ -332,39 +331,29 @@ void TIM3_IRQHandler(void)
     TIM3->DIER &= ~TIM_DIER_CC1DE;
     TIM3->SR &= ~TIM_SR_CC1IF;
 
-    uint8_t *filledbuffer;
-
     DMA1_Channel6->CCR = 0;
-    DMA1_Channel6->CNDTR = sizeof(LineBuffer1);
-    if(CurrentLine & 1)
-    {
-        DMA1_Channel6->CMAR = (uint32_t)LineBuffer1;
-        filledbuffer = LineBuffer2;
-    }
-    else
-    {
-        DMA1_Channel6->CMAR = (uint32_t)LineBuffer2;
-        filledbuffer = LineBuffer1;
-    }
+    DMA1_Channel6->CNDTR = sizeof(LineBuffer);
+    DMA1_Channel6->CMAR = (uint32_t)LineBuffer;
     DMA1_Channel6->CCR = DMA_CCR_PL | DMA_CCR_MINC | DMA_CCR_EN;
     TIM3->DIER |= TIM_DIER_CC1DE;
 
-    if(!Camera_Captured)
+    if(!Camera_Captured && (~CurrentLine & 1))
     {
         int error = 0;
         for(int i = 0; i < CAMERA_IMAGE_WIDTH; i++)
         {
-            int pixel = filledbuffer[i + 15] + error;
+            int pixel = LineBuffer[i + 15] + error;
+            int line = CurrentLine / 2;
             if(pixel < 127)
             {
                 error = pixel;
-                ImageBuffer[(CurrentLine * CAMERA_IMAGE_WIDTH + i) / 8] |=
+                ImageBuffer[(line * CAMERA_IMAGE_WIDTH + i) / 8] |=
                     0x80 >> (i % 8);
             }
             else
             {
                 error = pixel - 255;
-                ImageBuffer[(CurrentLine * CAMERA_IMAGE_WIDTH + i) / 8] &=
+                ImageBuffer[(line * CAMERA_IMAGE_WIDTH + i) / 8] &=
                     ~(0x80 >> (i % 8));
             }
         }

@@ -60,8 +60,10 @@ void Print_Image(const uint8_t *data, int width, int height, int scale)
                     & (0x80 >> ((j / scale) % 8));
                 if(black)
                 {
-                    Print_Buffer[i * LTP1245_LINE_BYTES + j / 8] |=
-                    (0x80 >> (j % 8));
+                    int x = j;
+                    x += (LTP1245_LINEWIDTH - width * scale) / 2;
+                    Print_Buffer[i * LTP1245_LINE_BYTES + x / 8] |=
+                    (0x80 >> (x % 8));
                 }
             }
             currentline++;

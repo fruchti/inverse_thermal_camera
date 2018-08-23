@@ -39,27 +39,35 @@ void Print_Text(const char *text, const Font_t *font)
 }
 
 // Width needs to be divisible by 8
-void Print_Image(const uint8_t *data, int width, int height)
+void Print_Image(const uint8_t *data, int width, int height, int scale)
 {
     int currentline = 0;
     while(height)
     {
-        int lines = PRINT_BUFFER_LINES;
+        int lines = PRINT_BUFFER_LINES / scale;
         if(height < lines)
         {
             lines = height;
         }
 
-        for(int i = 0; i < lines; i++)
+        memset(Print_Buffer, 0, sizeof(Print_Buffer));
+
+        for(int i = 0; i < lines * scale; i++)
         {
-            memcpy(Print_Buffer + i * LTP1245_LINE_BYTES,
-                data + currentline * width / 8,
-                width / 8);
-            memset(Print_Buffer + width / 8, 0, LTP1245_LINE_BYTES - width / 8);
+            for(int j = 0; j < width * scale; j++)
+            {
+                int black = data[(currentline / scale * width + j / scale) / 8]
+                    & (0x80 >> ((j / scale) % 8));
+                if(black)
+                {
+                    Print_Buffer[i * LTP1245_LINE_BYTES + j / 8] |=
+                    (0x80 >> (j % 8));
+                }
+            }
             currentline++;
         }
 
-        LTP1245_Print(Print_Buffer, lines);
+        LTP1245_Print(Print_Buffer, lines * scale);
 
         height -= lines;
     }

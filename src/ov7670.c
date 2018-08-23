@@ -310,7 +310,7 @@ void TIM1_CC_IRQHandler(void)
     CurrentLine = 0;
     FrameCount++;
 
-    if(FrameCount == 10)
+    if(FrameCount == 5)
     {
         Camera_Captured = 1;
         // Disable everything

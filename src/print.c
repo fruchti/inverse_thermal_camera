@@ -1,7 +1,7 @@
 #include "print.h"
 #include "ltp1245.h"
 
-static uint8_t Print_Buffer[64 * LTP1245_LINE_BYTES];
+static uint8_t Print_Buffer[PRINT_BUFFER_LINES * LTP1245_LINE_BYTES];
 
 void Print_Text(const char *text, const Font_t *font)
 {
@@ -36,4 +36,31 @@ void Print_Text(const char *text, const Font_t *font)
     }
 
     LTP1245_Print(Print_Buffer, height);
+}
+
+// Width needs to be divisible by 8
+void Print_Image(const uint8_t *data, int width, int height)
+{
+    int currentline = 0;
+    while(height)
+    {
+        int lines = PRINT_BUFFER_LINES;
+        if(height < lines)
+        {
+            lines = height;
+        }
+
+        for(int i = 0; i < lines; i++)
+        {
+            memcpy(Print_Buffer + i * LTP1245_LINE_BYTES,
+                data + currentline * width / 8,
+                width / 8);
+            //memset(Print_Buffer + width / 8, 0, LTP1245_LINE_BYTES - width / 8);
+            currentline++;
+        }
+
+        LTP1245_Print(Print_Buffer, lines);
+
+        height -= lines;
+    }
 }

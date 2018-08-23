@@ -150,9 +150,11 @@
 
 uint8_t ImageBuffer[176 * 144 / 8];
 static volatile int CurrentLine = 0;
-uint8_t LineBuffer1[176];
-uint8_t LineBuffer2[176];
+uint8_t LineBuffer1[176 * 2 + 40];
+uint8_t LineBuffer2[176 * 2 + 40];
 int LineCount = 0;
+static int FrameCount = 0;
+volatile int Camera_Captured = 0;
 
 static uint8_t ReadRegister(uint8_t reg)
 {
@@ -263,7 +265,7 @@ void Camera_Init(void)
     // pixel clock and should trigger DMA transfers
     TIM3->PSC = 0;
     TIM3->ARR = 1;
-    TIM3->CCMR1 = TIM_CCMR1_CC2S_0 | TIM_CCMR1_CC1S_0 | TIM_CCMR1_IC1PSC_0;
+    TIM3->CCMR1 = TIM_CCMR1_CC2S_0 | TIM_CCMR1_CC1S_0;
     TIM3->CCER = TIM_CCER_CC2P | TIM_CCER_CC2E | TIM_CCER_CC1E | TIM_CCER_CC1P;
     TIM3->DIER = TIM_DIER_CC2IE;
     TIM3->CR1 = TIM_CR1_CEN;
@@ -271,7 +273,7 @@ void Camera_Init(void)
     NVIC_EnableIRQ(TIM3_IRQn);
 
     // Fetch GPIOA IDR lower byte
-    DMA1_Channel6->CMAR = (uint32_t)&(GPIOA->IDR);
+    DMA1_Channel6->CPAR = (uint32_t)&(GPIOA->IDR);
 
     // Startup delay
     for(volatile int i = 0; i < 1000; i++);
@@ -282,8 +284,11 @@ void Camera_Init(void)
     // Disable timing resets
     WriteRegister(REG_COM6, 0x00);
 
+    // Set clock prescaler to 2
+    WriteRegister(REG_CLKRC, 0x4 | 1);
+
     // Enable scaling
-    WriteRegister(REG_COM3, 0x08 | 0x04);
+    WriteRegister(REG_COM3, 0x08);
 
     // Use QCIF output format
     WriteRegister(REG_COM7, 0x08);
@@ -291,11 +296,9 @@ void Camera_Init(void)
     // Blank pixel clock during sync pulses
     WriteRegister(REG_COM10, 0x20);
 
-    // Set clock prescaler to 2
-    WriteRegister(REG_CLKRC, 0x4 | 1);
-
     // Enable pixel clock scaling
-    WriteRegister(REG_COM14, 0x10);
+    WriteRegister(REG_COM14, 0x18 | 2);
+    WriteRegister(REG_SCALING_PCLK_DIV, 2);
 }
 
 void TIM1_CC_IRQHandler(void)
@@ -306,6 +309,12 @@ void TIM1_CC_IRQHandler(void)
 
     LineCount = CurrentLine;
     CurrentLine = 0;
+    FrameCount++;
+
+    if(FrameCount == 10)
+    {
+        Camera_Captured = 1;
+    }
 
     // Dummy read
     TIM1->CCR2;
@@ -322,20 +331,41 @@ void TIM3_IRQHandler(void)
     TIM3->DIER &= ~TIM_DIER_CC1DE;
     TIM3->SR &= ~TIM_SR_CC1IF;
 
+    uint8_t *filledbuffer;
+
     DMA1_Channel6->CCR = 0;
     DMA1_Channel6->CNDTR = sizeof(LineBuffer1);
     if(CurrentLine & 1)
     {
         DMA1_Channel6->CMAR = (uint32_t)LineBuffer1;
+        filledbuffer = LineBuffer2;
     }
     else
     {
         DMA1_Channel6->CMAR = (uint32_t)LineBuffer2;
+        filledbuffer = LineBuffer1;
     }
     DMA1_Channel6->CCR = DMA_CCR_PL | DMA_CCR_MINC | DMA_CCR_EN;
     TIM3->DIER |= TIM_DIER_CC1DE;
 
-    // ImageBuffer[0] = 0;
+    if(!Camera_Captured)
+    {
+        int error = 0;
+        for(int i = 0; i < 176; i++)
+        {
+            int pixel = filledbuffer[i * 2 + 33] + error;
+            if(pixel < 127)
+            {
+                error = pixel;
+                ImageBuffer[(CurrentLine * 176 + i) / 8] |= 0x80 >> (i % 8);
+            }
+            else
+            {
+                error = pixel - 255;
+                ImageBuffer[(CurrentLine * 176 + i) / 8] &= ~(0x80 >> (i % 8));
+            }
+        }
+    }
 
     CurrentLine++;
 

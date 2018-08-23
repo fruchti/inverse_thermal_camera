@@ -28,6 +28,11 @@ int main(void)
     // LTP1245_FeedPaper(10);
     // LTP1245_Cut();
 
+    while(!Camera_Captured);
+
+    extern uint8_t ImageBuffer[176 * 144 / 8];
+    Print_Image(ImageBuffer, 176, 144);
+
     for(;;)
     {
     }

@@ -3,7 +3,7 @@
         {
             "name": "STM32F103x8",
             "includePath": [
-                "/usr/lib/gcc/arm-none-eabi/7.3.0/include",
+                "/usr/lib/gcc/arm-none-eabi/9.2.0/include",
                 "/opt/stm32cube/STM32Cube_FW_F1_V1.6.0/Drivers/CMSIS/Include",
                 "/opt/stm32cube/STM32Cube_FW_F1_V1.6.0/Drivers/CMSIS/Device/ST/STM32F1xx/Include",
                 "${workspaceRoot}"
@@ -15,7 +15,7 @@
             "intelliSenseMode": "clang-x64",
             "browse": {
                 "path": [
-                    "/usr/lib/gcc/arm-none-eabi/7.3.0/include",
+                    "/usr/lib/gcc/arm-none-eabi/9.2.0/include",
                     "/opt/stm32cube/STM32Cube_FW_F1_V1.6.0/Drivers/CMSIS/Include",
                     "/opt/stm32cube/STM32Cube_FW_F1_V1.6.0/Drivers/CMSIS/Device/ST/STM32F1xx/Include",
                     "${workspaceRoot}"

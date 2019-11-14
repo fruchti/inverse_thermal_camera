@@ -11,6 +11,10 @@
 // dithering.
 #define CAMERA_USE_2D_DITHERING
 
+// Use a primitive autoexposure by shifting each frames luminosity based on the
+// ratio of white to black pixels in the previous frames
+// #define CAMERA_USE_EXPOSURE_CORRECTION
+
 extern volatile int Camera_Captured;
 
 void Camera_Init(void);

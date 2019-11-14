@@ -155,7 +155,10 @@ int LineCount = 0;
 static volatile int FrameCount = 0;
 volatile int Camera_Captured = 0;
 static unsigned int BlackPixels = 0;
+
+#ifdef CAMERA_USE_EXPOSURE_CORRECTION
 static volatile int ExposureCorrection = 0;
+#endif
 
 static uint8_t ReadRegister(uint8_t reg)
 {
@@ -312,8 +315,10 @@ void TIM1_CC_IRQHandler(void)
     CurrentLine = 0;
     FrameCount++;
 
+#ifdef CAMERA_USE_EXPOSURE_CORRECTION
     // Correct exposure across frames
     ExposureCorrection += 32 * BlackPixels / CAMERA_PIXELS - 16;
+#endif
 
     // Check if the last frame's exposure is reasonable
     if(FrameCount >= 5)
@@ -373,6 +378,7 @@ void TIM3_IRQHandler(void)
         for(int i = 0; i < CAMERA_IMAGE_WIDTH; i++)
         {
             int pixel = LineBuffer[i + 15] + x_error;
+#ifdef CAMERA_USE_EXPOSURE_CORRECTION
             if(ExposureCorrection < 0)
             {
                 if(pixel < -ExposureCorrection)
@@ -387,6 +393,7 @@ void TIM3_IRQHandler(void)
                 else
                     pixel += ExposureCorrection;
             }
+#endif
             
             int line = CurrentLine / 2;
             int error;

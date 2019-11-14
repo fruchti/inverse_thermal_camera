@@ -493,7 +493,7 @@ void ADC1_2_IRQHandler(void)
         // Use the formula from section 3.6, adjusted for integer arithmetic and
         // a pulse with in microseconds
         PulseWidth = (285 * 178 - (int)(1000 * 178 * 0.003135) * (temp - 25))
-            / (int)((5 * 1.4 - 2.9) * (5 * 1.4 - 2.9));
+            / (int)((7.4 * 1.2 - 1.8) * (7.4 * 1.2 - 1.8));
 
         average_counter = 0;
         average = 0;

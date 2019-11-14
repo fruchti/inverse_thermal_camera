@@ -328,7 +328,6 @@ void TIM1_CC_IRQHandler(void)
 void TIM3_IRQHandler(void)
 {
     // HSYNC
-
     TIM3->DIER &= ~TIM_DIER_CC1DE;
     TIM3->SR &= ~TIM_SR_CC1IF;
 
@@ -338,14 +337,35 @@ void TIM3_IRQHandler(void)
     DMA1_Channel6->CCR = DMA_CCR_PL | DMA_CCR_MINC | DMA_CCR_EN;
     TIM3->DIER |= TIM_DIER_CC1DE;
 
+#ifdef CAMERA_USE_2D_DITHERING
+    static int8_t y_errors[CAMERA_IMAGE_WIDTH + 2] = {0};
+
+    if(CurrentLine == 0)
+    {
+        memset(y_errors, 0, sizeof(y_errors));
+    }
+#endif
+
     if(!Camera_Captured && (~CurrentLine & 1)
         && (CurrentLine / 2 < CAMERA_IMAGE_HEIGHT))
     {
-        int error = 0;
+
+#ifdef CAMERA_USE_2D_DITHERING
+        // Apply errors propagated from the previous line. Since y_errors is
+        // overwritten during x error diffusion, this is done now.
         for(int i = 0; i < CAMERA_IMAGE_WIDTH; i++)
         {
-            int pixel = LineBuffer[i + 15] + error;
+            LineBuffer[i + 15] += y_errors[i + 1];
+            y_errors[i + 1] = 0;
+        }
+#endif
+
+        int x_error = 0;
+        for(int i = 0; i < CAMERA_IMAGE_WIDTH; i++)
+        {
+            int pixel = LineBuffer[i + 15] + x_error;
             int line = CurrentLine / 2;
+            int error;
             if(pixel < 127)
             {
                 error = pixel;
@@ -358,6 +378,19 @@ void TIM3_IRQHandler(void)
                 ImageBuffer[(line * CAMERA_IMAGE_WIDTH + i) / 8] &=
                     ~(0x80 >> (i % 8));
             }
+
+#ifdef CAMERA_USE_2D_DITHERING
+            // Error propagated to the next pixel in the same line
+            x_error = error * 7 / 16;
+
+            // Error distributed to the next line's pixels (offset by 1 so
+            // bounds checking isn't necessary)
+            y_errors[i] += error * 3 / 16;
+            y_errors[i + 1] += error * 5 / 16;
+            y_errors[i + 2] = error * 1 / 16;
+#else
+            x_error = error;
+#endif
         }
     }
 

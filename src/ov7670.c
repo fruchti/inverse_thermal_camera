@@ -154,6 +154,7 @@ uint8_t LineBuffer[CAMERA_IMAGE_WIDTH + 40];
 int LineCount = 0;
 static int FrameCount = 0;
 volatile int Camera_Captured = 0;
+unsigned int BlackPixels = 0;
 
 static uint8_t ReadRegister(uint8_t reg)
 {
@@ -310,13 +311,18 @@ void TIM1_CC_IRQHandler(void)
     CurrentLine = 0;
     FrameCount++;
 
-    if(FrameCount == 5)
+    // Check if the last frame's exposure is reasonable
+    if(BlackPixels >= (unsigned)(CAMERA_PIXELS * CAMERA_EXPOSURE_LOW)
+        && BlackPixels <= (unsigned)(CAMERA_PIXELS * CAMERA_EXPOSURE_HIGH))
     {
         Camera_Captured = 1;
         // Disable everything
         TIM3->CR1 = 0;
         TIM1->CR1 = 0;
     }
+
+    // Reset black pixel counter
+    BlackPixels = 0;
 
     // Dummy read
     TIM1->CCR2;
@@ -371,6 +377,7 @@ void TIM3_IRQHandler(void)
                 error = pixel;
                 ImageBuffer[(line * CAMERA_IMAGE_WIDTH + i) / 8] |=
                     0x80 >> (i % 8);
+                BlackPixels++;
             }
             else
             {

@@ -5,6 +5,12 @@
 
 #define CAMERA_IMAGE_WIDTH      160
 #define CAMERA_IMAGE_HEIGHT     144
+#define CAMERA_PIXELS           (CAMERA_IMAGE_WIDTH * CAMERA_IMAGE_HEIGHT)
+
+// Maximum and minimum share of black pixels for an image to be accepted
+#define CAMERA_EXPOSURE_LIMIT   0.4
+#define CAMERA_EXPOSURE_LOW     (0.5 - CAMERA_EXPOSURE_LIMIT)
+#define CAMERA_EXPOSURE_HIGH    (0.5 + CAMERA_EXPOSURE_LIMIT)
 
 extern volatile int Camera_Captured;
 

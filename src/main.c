@@ -18,7 +18,6 @@ int main(void)
     
     LTP1245_FeedPaper(100);
     LTP1245_FeedPaper(10);
-    // LTP1245_Cut();
 
     while(!Camera_Captured);
 

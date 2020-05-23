@@ -23,7 +23,6 @@
 #define PIN_CAMERA_PCLK         4   // PB4  - Camera pixel clock (TIM3_CH1)
 #define PIN_CAMERA_HSYNC        5   // PB5  - Camera VSYNC (TIM3_CH2)
 #define PIN_HEAD                6   // PB6  - Head up sensor
-#define PIN_PAPER_CUT           7   // PB7  - Paper cutter servo (TIM4_CH2)
 #define PIN_CAMERA_SCL          8   // PB8  - Camera control I2C (I2C1_SCL)
 #define PIN_CAMERA_SDA          9   // PB9  - Camera control I2C (I2C1_SDA)
 #define PIN_DST1                10  // PB10 - Head drive signal 1 (TIM2_CH3)

@@ -19,7 +19,6 @@
 // Port B
 #define PIN_THERMISTOR          0   // PB0  - Thermistor (ADC12_IN8)
 #define PIN_SD_SCK              1   // PB1  - SD card SCK
-#define PIN_SD_CARD_DETECT      2   // PB2  - SD card detect
 #define PIN_PAPER               3   // PB3  - Paper detect
 #define PIN_CAMERA_PCLK         4   // PB4  - Camera pixel clock (TIM3_CH1)
 #define PIN_CAMERA_HSYNC        5   // PB5  - Camera VSYNC (TIM3_CH2)

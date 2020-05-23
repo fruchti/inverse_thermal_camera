@@ -83,7 +83,7 @@ void BMP_Save(uint8_t *data, int width, int height)
     char filename[13];
     BMP_ConstructFilename(file_number, filename, sizeof(filename));
 
-    rc = f_open(&fp, filename, FA_WRITE | FA_CREATE_ALWAYS);
+    rc = f_open(&fp, filename, FA_WRITE | FA_CREATE_NEW);
     if(rc)
     {
         return;

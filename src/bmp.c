@@ -19,6 +19,51 @@ typedef struct
     uint16_t bits_per_pixel;
 } __attribute((packed)) BMP_CoreHeader_t;
 
+const char* BMP_FilenamePrefix = "TCIM-";
+
+int BMP_PickFileNumber(void)
+{
+    int maximum = -1;
+    DIR dp;
+
+    if(f_opendir(&dp, "/") != FR_OK)
+        return -1;
+
+    FILINFO finfo;
+    for(;;)
+    {
+        FRESULT rc = f_readdir(&dp, &finfo);
+        if(rc != FR_OK || finfo.fname[0] == 0)
+            break;
+
+        // Check if the item is a directory
+        if(finfo.fattrib & AM_DIR)
+            continue;
+
+        if(strncmp(finfo.fname, BMP_FilenamePrefix, strlen(BMP_FilenamePrefix))
+                == 0)
+        {
+            int number = atoi(finfo.fname + strlen(BMP_FilenamePrefix));
+            if(number > maximum)
+                maximum = number;
+        }
+    }
+
+    return maximum + 1;
+}
+
+void BMP_ConstructFilename(int number, char *buffer, unsigned int size)
+{
+    unsigned int prefix_length = strlen(BMP_FilenamePrefix);
+    memcpy(buffer, BMP_FilenamePrefix, prefix_length);
+    for(unsigned int i = size - 6; i >= prefix_length; i--)
+    {
+        buffer[i] = '0' + (number % 10);
+        number /= 10;
+    }
+    memcpy(buffer + size - 5, ".BMP", 5);
+}
+
 void BMP_Save(uint8_t *data, int width, int height)
 {
     FATFS fs;
@@ -32,7 +77,13 @@ void BMP_Save(uint8_t *data, int width, int height)
         return;
     }
 
-    rc = f_open(&fp, "IMAGE.BMP", FA_WRITE | FA_CREATE_ALWAYS);
+    int file_number = BMP_PickFileNumber();
+    if(file_number == -1)
+        return;
+    char filename[13];
+    BMP_ConstructFilename(file_number, filename, sizeof(filename));
+
+    rc = f_open(&fp, filename, FA_WRITE | FA_CREATE_ALWAYS);
     if(rc)
     {
         return;

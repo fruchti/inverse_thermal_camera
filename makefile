@@ -1,5 +1,5 @@
 PROJECT = main
-SOURCE_DIRS = src
+SOURCE_DIRS = src third_party/fatfs
 ADDITIONAL_SOURCES = 
 INCLUDE_DIRS = third_party/core third_party/device
 EXCLUDE_SOURCES =

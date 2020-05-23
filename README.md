@@ -12,4 +12,4 @@ More details can be found [here](https://25120.org/post/inverse_thermal_camera/)
 
 ## Licence
 
-The header files in the `third_party` directory are provided by ARM Limited and ST Microelectronics and contain their own licence information. Everything else is ISC licenced.
+The device header files in the `third_party` directory are provided by ARM Limited and ST Microelectronics and contain their own licence information. FatFs, also located in `third_party`, contains its own licence information as well. Everything else is ISC licenced.

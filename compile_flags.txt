@@ -2,6 +2,7 @@
 -Isrc
 -Ithird_party/core
 -Ithird_party/device
+-Ithird_party/fatfs
 -DSTM32F103xB
 -D_DEFAULT_SOURCE
 -Wall

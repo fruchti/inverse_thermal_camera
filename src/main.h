@@ -15,6 +15,7 @@
 #include "font_messe_duesseldorf_39.h"
 #include "font_arpegius_16.h"
 #include "font_arpegius_32.h"
+#include "bmp.h"
 
 int main(void);
 

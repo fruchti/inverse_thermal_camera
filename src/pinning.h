@@ -18,10 +18,13 @@
 
 // Port B
 #define PIN_THERMISTOR          0   // PB0  - Thermistor (ADC12_IN8)
+#define PIN_SD_SCK              1   // PB1  - SD card SCK
+#define PIN_SD_CARD_DETECT      2   // PB2  - SD card detect
 #define PIN_PAPER               3   // PB3  - Paper detect
 #define PIN_CAMERA_PCLK         4   // PB4  - Camera pixel clock (TIM3_CH1)
 #define PIN_CAMERA_HSYNC        5   // PB5  - Camera VSYNC (TIM3_CH2)
 #define PIN_HEAD                6   // PB6  - Head up sensor
+#define PIN_SD_MISO             7   // PB7  - SD card MISO
 #define PIN_CAMERA_SCL          8   // PB8  - Camera control I2C (I2C1_SCL)
 #define PIN_CAMERA_SDA          9   // PB9  - Camera control I2C (I2C1_SDA)
 #define PIN_DST1                10  // PB10 - Head drive signal 1 (TIM2_CH3)
@@ -32,4 +35,6 @@
 #define PIN_DIN                 15  // PB15 - Thermal printer MOSI (SPI2)
 
 // Port C
-#define PIN_SUPPLY              14  // PC14  - Voltage regulator enable
+#define PIN_SD_MOSI             13  // PC13 - SD card MOSI
+#define PIN_SUPPLY              14  // PC14 - Voltage regulator enable
+#define PIN_SD_CS               15  // PC15 - SD card chip select

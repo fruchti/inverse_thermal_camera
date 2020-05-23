@@ -2,12 +2,19 @@
 
 int main(void)
 {
-    RCC->APB2ENR |= RCC_APB2ENR_IOPCEN;
+    RCC->APB2ENR |= RCC_APB2ENR_IOPBEN | RCC_APB2ENR_IOPCEN;
 
     GPIOC->CRH = (GPIOC->CRH
         & ~(0x0f << (4 * PIN_SUPPLY - 32)))
         | (0x01 << (4 * PIN_SUPPLY - 32))      // Output, max. 10 MHz
         ;
+
+    GPIOB->CRL = (GPIOB->CRL
+        & ~(0x0f << (4 * PIN_SD_CARD_DETECT)))
+        | (0x08 << (4 * PIN_SD_CARD_DETECT))   // Input with pull-up/-down
+        ;
+    // Use pull-up
+    GPIOB->BSRR = (1 << PIN_SD_CARD_DETECT);
     
     GPIOC->BSRR = (1 << PIN_SUPPLY);
 
@@ -25,6 +32,8 @@ int main(void)
     LTP1245_FeedPaper(100);
     LTP1245_FeedPaper(10);
 
+    BMP_Save(ImageBuffer, CAMERA_IMAGE_WIDTH, CAMERA_IMAGE_HEIGHT);
+
     GPIOC->BRR = (1 << PIN_SUPPLY);
 
     for(;;)
@@ -32,4 +41,3 @@ int main(void)
         __WFI();
     }
 }
-

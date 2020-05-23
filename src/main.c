@@ -23,9 +23,10 @@ int main(void)
     Print_Image(ImageBuffer, CAMERA_IMAGE_WIDTH, CAMERA_IMAGE_HEIGHT, 2);
 
     LTP1245_FeedPaper(100);
-    LTP1245_FeedPaper(10);
 
     BMP_Save(ImageBuffer, CAMERA_IMAGE_WIDTH, CAMERA_IMAGE_HEIGHT);
+    
+    LTP1245_FeedPaper(10);
 
     GPIOC->BRR = (1 << PIN_SUPPLY);
 

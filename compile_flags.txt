@@ -1,0 +1,9 @@
+--std=c99
+-Isrc
+-Ithird_party/core
+-Ithird_party/device
+-DSTM32F103xB
+-D_DEFAULT_SOURCE
+-Wall
+-Wextra
+--target=arm-none-eabi

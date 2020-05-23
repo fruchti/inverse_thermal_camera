@@ -5,9 +5,7 @@ int main(void)
     RCC->APB2ENR |= RCC_APB2ENR_IOPCEN;
 
     GPIOC->CRH = (GPIOC->CRH
-        & ~(0x0f << (4 * PIN_LED - 32))
         & ~(0x0f << (4 * PIN_SUPPLY - 32)))
-        | (0x01 << (4 * PIN_LED - 32))      // Output, max. 10 MHz
         | (0x01 << (4 * PIN_SUPPLY - 32))      // Output, max. 10 MHz
         ;
     

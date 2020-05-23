@@ -308,9 +308,6 @@ void Camera_Init(void)
 void TIM1_CC_IRQHandler(void)
 {
     // VSYNC
-
-    // GPIOC->BRR = (1 << PIN_LED);
-
     LineCount = CurrentLine;
     CurrentLine = 0;
     FrameCount++;
@@ -335,8 +332,6 @@ void TIM1_CC_IRQHandler(void)
     // Dummy read
     TIM1->CCR2;
     TIM1->SR &= ~TIM_SR_CC2IF;
-
-    // GPIOC->BSRR = (1 << PIN_LED);
 }
 
 void TIM3_IRQHandler(void)

@@ -33,5 +33,4 @@
 #define PIN_DIN                 15  // PB15 - Thermal printer MOSI (SPI2)
 
 // Port C
-#define PIN_LED                 13  // PC13 - Status LED
 #define PIN_SUPPLY              14  // PC14  - Voltage regulator enable

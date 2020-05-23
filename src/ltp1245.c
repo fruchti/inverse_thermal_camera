@@ -329,8 +329,6 @@ void SysTick_Handler(void)
     const int GPIO_MASK = ((1 << PIN_STEPPER_AM) | (1 << PIN_STEPPER_AP)
         | (1 << PIN_STEPPER_BM) | (1 << PIN_STEPPER_BP));
 
-    GPIOC->BRR = (1 << PIN_LED);
-
     if(Stepper_Delta != 0)
     {
         off = false;
@@ -366,8 +364,6 @@ void SysTick_Handler(void)
     }
 
     AdvanceStateMachine();
-
-    GPIOC->BSRR = (1 << PIN_LED);
 }
 
 void ADC1_2_IRQHandler(void)

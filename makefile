@@ -23,7 +23,7 @@ endif
 CFLAGS = -mcpu=cortex-m3 -mthumb \
 		 -Os -fno-common -Werror \
 		 -nostartfiles \
-		 -Wall -Xlinker --gc-sections \
+		 -Wall -Wextra -Xlinker --gc-sections \
 		 -D$(H_DEVICE) -D_DEFAULT_SOURCE -T$(LD_SCRIPT) \
 		 -Wl,-Map=$(BUILD_DIR)/$(PROJECT).map -std=c99 \
 		 $(addprefix -I,$(SOURCE_DIRS) $(INCLUDE_DIRS)) $(DEBUG_FLAGS)

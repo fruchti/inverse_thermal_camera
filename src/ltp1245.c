@@ -413,7 +413,7 @@ void ADC1_2_IRQHandler(void)
         
         // Find first temperature higher than the measured one
         int lower_entry = 0;
-        for(int i = 1; i < sizeof(READINGS) / sizeof(READINGS[0]); i++)
+        for(unsigned int i = 1; i < sizeof(READINGS) / sizeof(READINGS[0]); i++)
         {
             if(adc >= READINGS[i])
             {
@@ -421,7 +421,7 @@ void ADC1_2_IRQHandler(void)
                 break;
             }
         }
-        int higher_entry = lower_entry + 1;
+        unsigned int higher_entry = lower_entry + 1;
         int temp = lower_entry * 5 - 40;    // Temperature in °C
 
         // Interpolate linearly

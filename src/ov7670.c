@@ -218,7 +218,6 @@ void Camera_Init(void)
     GPIOB->BRR = (1 << PIN_CAMERA_RESET);
     GPIOB->BSRR = (1 << PIN_CAMERA_RESET);
 
-
     // Enable MCO for camera main clock line (PLL / 2 -> 24 MHz)
     RCC->CFGR |= RCC_CFGR_MCO;
     GPIOA->CRH = (GPIOA->CRH
@@ -261,7 +260,6 @@ void Camera_Init(void)
     TIM1->CCMR1 = TIM_CCMR1_CC2S_0;
     TIM1->CCER = TIM_CCER_CC2E;
     TIM1->DIER = TIM_DIER_CC2IE;
-    TIM1->CR1 = TIM_CR1_CEN;
     NVIC_SetPriority(TIM1_CC_IRQn, 0);
     NVIC_EnableIRQ(TIM1_CC_IRQn);
 
@@ -272,7 +270,6 @@ void Camera_Init(void)
     TIM3->CCMR1 = TIM_CCMR1_CC2S_0 | TIM_CCMR1_CC1S_0 | TIM_CCMR1_IC1PSC_1;
     TIM3->CCER = TIM_CCER_CC2P | TIM_CCER_CC2E | TIM_CCER_CC1E | TIM_CCER_CC1P;
     TIM3->DIER = TIM_DIER_CC2IE;
-    TIM3->CR1 = TIM_CR1_CEN;
     NVIC_SetPriority(TIM3_IRQn, 0);
     NVIC_EnableIRQ(TIM3_IRQn);
 
@@ -303,11 +300,29 @@ void Camera_Init(void)
     // Enable pixel clock scaling
     WriteRegister(REG_COM14, 0x18 | 1);
     WriteRegister(REG_SCALING_PCLK_DIV, 1);
+
+    // Enable VSYNC interrupts. TIM3 is enabled at the first VSYNC.
+    FrameCount = 0;
+    Camera_Captured = 0;
+    TIM1->CR1 = TIM_CR1_CEN;
 }
 
 void TIM1_CC_IRQHandler(void)
 {
     // VSYNC
+    if(~TIM3->CR1 & TIM_CR1_CEN)
+    {
+        // Enable HSYNC interrupts and pixel-clock-initiated DMA transfers
+        TIM3->CR1 = TIM_CR1_CEN;
+
+        // Return early
+        // Dummy read
+        TIM1->CCR2;
+        TIM1->SR &= ~TIM_SR_CC2IF;
+        return;
+    }
+    
+
     LineCount = CurrentLine;
     CurrentLine = 0;
     FrameCount++;

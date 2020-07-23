@@ -8,6 +8,8 @@ This is the firmware for a simple thermocromic selfie camera based on
 
 Apart from that, only a level shifter for the thermal printer (which needs 5 V signals), a motor driver for its stepper, a pullup for its thermistor, and a MOSFET for turning all power off are needed.
 
+If an SD-card is connected, all photos are also stored there as 2-colour (dithered) BMP files.
+
 More details can be found [here](https://25120.org/post/inverse_thermal_camera/).
 
 ## Licence

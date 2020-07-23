@@ -89,7 +89,7 @@ void BMP_Save(uint8_t *data, int width, int height)
         return;
     }
 
-    // Rows must be padded to a multiple if 4 bytes
+    // Rows must be padded to a multiple of 4 bytes
     int row_size = width / 8;
     int padding_length = (4 - (row_size % 4)) % 4;
     uint8_t padding_bytes[4] = {0};
@@ -99,7 +99,7 @@ void BMP_Save(uint8_t *data, int width, int height)
     {
         .b = 'B',
         .m = 'M',
-        .bitmap_file_size = 14 + 12 + row_size * height,
+        .bitmap_file_size = 14 + 12 + 6 + row_size * height,
         .bitmap_data_offset = 14 + 12 + 6
     };
 
